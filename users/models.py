@@ -9,6 +9,9 @@ class DefaultTypeClass(models.Model):
     name = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
 
+    class Meta:
+        abstract = True # что бы не создавать таблицу в бд
+
 
 class Role(models.Model):
     name = models.CharField(max_length=256)
@@ -132,6 +135,3 @@ class Review(models.Model):
     )  # рейтинг от 1 до 5
     comment = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
-
-
