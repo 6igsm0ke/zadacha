@@ -59,17 +59,21 @@ class User(AbstractUser, BaseModel):
 
 class LessonType(DefaultTypeClass):
     # offline or online or maybe hybrid
-    pass
+    def __str__(self):
+        return self.name
 
 
 class SubjectCategory(DefaultTypeClass):
     # Science, Humanitaries and etc.
-    pass
+    def __str__(self):
+        return self.name
 
 
 class Subject(DefaultTypeClass):
     category = models.ForeignKey(SubjectCategory, on_delete=models.CASCADE)
-    pass
+
+    def __str__(self):
+        return self.name
 
 
 class LessonSlot(BaseModel):
@@ -114,14 +118,14 @@ class LessonRequest(BaseModel):
         return f"{self.student.username} → {self.slot} [{self.status}]"
 
 
-class Lesson(models.Model):
+class Lesson(BaseModel):
     slot = models.OneToOneField(LessonSlot, on_delete=models.CASCADE)
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="given")
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="taken")
     confirmed_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Lesson: {self.teacher.username} ↔ {self.student.username} | {self.slot.start_time.strftime('%Y-%m-%d %H:%M')}"
+        return f"Lesson: {self.teacher.username} ↔ {self.student.username} | {self.slot.start_time.strftime('%Y-%   m-%d %H:%M')}"
 
 
 class Notification(BaseModel):
