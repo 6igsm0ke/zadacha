@@ -10,7 +10,15 @@ class DefaultTypeClass(models.Model):
     description = models.TextField(null=True, blank=True)
 
     class Meta:
-        abstract = True # что бы не создавать таблицу в бд
+        abstract = True  # что бы не создавать таблицу в бд
+
+
+class BaseModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
 
 
 class Role(models.Model):
@@ -29,9 +37,8 @@ class Role(models.Model):
         return self.name
 
 
-class User(AbstractUser):
+class User(AbstractUser, BaseModel):
     bio = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
 
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -65,7 +72,7 @@ class Subject(DefaultTypeClass):
     pass
 
 
-class LessonSlot(models.Model):
+class LessonSlot(BaseModel):
     type = models.ForeignKey(LessonType, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="teacher")
@@ -86,7 +93,7 @@ class LessonSlot(models.Model):
         return f"{self.teacher.first_name} {self.teacher.last_name} | {self.start_time.strftime('%Y-%m-%d %H:%M')}"
 
 
-class LessonRequest(models.Model):
+class LessonRequest(BaseModel):
     STATUS_CHOICES = (
         ("pending", "Pending"),
         ("accepted", "Accepted"),
@@ -96,8 +103,6 @@ class LessonRequest(models.Model):
     slot = models.ForeignKey(LessonSlot, on_delete=models.CASCADE, verbose_name="slot")
     student = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="student")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = [
@@ -119,14 +124,13 @@ class Lesson(models.Model):
         return f"Lesson: {self.teacher.username} ↔ {self.student.username} | {self.slot.start_time.strftime('%Y-%m-%d %H:%M')}"
 
 
-class Notification(models.Model):
+class Notification(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
 
-class Review(models.Model):
+class Review(BaseModel):
     lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE)
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="written")
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received")
@@ -134,4 +138,3 @@ class Review(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )  # рейтинг от 1 до 5
     comment = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
