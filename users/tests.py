@@ -69,7 +69,7 @@ class LessonSlotModelTest(BaseModelTest):
             slot1.full_clean()
 
     def test_invalid_lesson_slot_with_time(self):
-        slot1 = LessonSlot.objects.create(
+        slot1 = LessonSlot(
             type=self.lesson_type,
             subject=self.subject,
             teacher=self.teacher,
@@ -94,7 +94,7 @@ class LessonRequestSlotModelTest(BaseModelTest):
     def test_duplicate_lesson_request(self):
         LessonRequest.objects.create(slot=self.slot, student=self.student)  # valid
 
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ValidationError):
             LessonRequest.objects.create(
                 slot=self.slot, student=self.student
             ).full_clean()  # it is called second time not valid
