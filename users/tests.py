@@ -1,4 +1,6 @@
 from django.test import TestCase
+from django.db import IntegrityError
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .models import *
@@ -23,6 +25,15 @@ class BaseModelTest(TestCase):
         self.student.role = self.student_role
         self.student.save()
 
+        self.slot = LessonSlot.objects.create(
+            type=self.lesson_type,
+            subject=self.subject,
+            teacher=self.teacher,
+            start_time=timezone.now(),
+            end_time=timezone.now() + timezone.timedelta(hours=1),
+            max_students=5,
+        )
+
 
 class UserModelTest(BaseModelTest):
 
@@ -35,7 +46,7 @@ class UserModelTest(BaseModelTest):
 class LessonSlotModelTest(BaseModelTest):
 
     def test_valid_lesson_slot(self):
-        slot = LessonSlot.objects.create(
+        slot1 = LessonSlot.objects.create(
             type=self.lesson_type,
             subject=self.subject,
             teacher=self.teacher,
@@ -43,10 +54,10 @@ class LessonSlotModelTest(BaseModelTest):
             start_time=timezone.now(),
             end_time=timezone.now() + timezone.timedelta(hours=1),
         )
-        self.assertEqual(slot.teacher.username, "Teacher1")
+        self.assertEqual(slot1.teacher.username, "Teacher1")
 
     def test_invalid_lesson_slot_with_student(self):
-        slot = LessonSlot(
+        slot1 = LessonSlot(
             type=self.lesson_type,
             subject=self.subject,
             teacher=self.student,
@@ -55,10 +66,10 @@ class LessonSlotModelTest(BaseModelTest):
             end_time=timezone.now() + timezone.timedelta(hours=1),
         )
         with self.assertRaises(ValidationError):
-            slot.full_clean()
+            slot1.full_clean()
 
     def test_invalid_lesson_slot_with_time(self):
-        slot = LessonSlot.objects.create(
+        slot1 = LessonSlot.objects.create(
             type=self.lesson_type,
             subject=self.subject,
             teacher=self.teacher,
@@ -68,20 +79,10 @@ class LessonSlotModelTest(BaseModelTest):
         )
 
         with self.assertRaises(ValidationError):
-            slot.full_clean()
+            slot1.full_clean()
 
 
 class LessonRequestSlotModelTest(BaseModelTest):
-    def setUp(self):
-        super().setUp()
-        self.slot = LessonSlot.objects.create(
-            type=self.lesson_type,
-            subject=self.subject,
-            teacher=self.teacher,
-            start_time=timezone.now(),
-            end_time=timezone.now() + timezone.timedelta(hours=1),
-            max_students=5,
-        )
 
     def test_valid_lesson_request(self):
         req = LessonRequest.objects.create(
@@ -91,23 +92,31 @@ class LessonRequestSlotModelTest(BaseModelTest):
         self.assertEqual(req.slot, self.slot)
 
     def test_duplicate_lesson_request(self):
-        LessonRequest.objects.create(slot=self.slot, student=self.student)
+        LessonRequest.objects.create(slot=self.slot, student=self.student)  # valid
 
-        with self.assertRaises(Exception):
-            LessonRequest.objects.create(slot=self.slot, student=self.student)
+        with self.assertRaises(IntegrityError):
+            LessonRequest.objects.create(
+                slot=self.slot, student=self.student
+            ).full_clean()  # it is called second time not valid
+
+    def test_lesson_request_exceeds_limit(self):
+        for i in range(2, 7):
+            s = User.objects.create_user(username=f"Student{i}", password="1234")
+            s.role = self.student_role
+            s.save()
+
+            LessonRequest.objects.create(slot=self.slot, student=s, status="accepted")
+
+        new_student = User.objects.create_user(username="Student_new", password="1234")
+        new_student.role = self.student_role
+        new_student.save()
+
+        req = LessonRequest(slot=self.slot, student=new_student)
+        with self.assertRaises(ValidationError):
+            req.full_clean()
 
 
 class LessonModelTest(BaseModelTest):
-    def setUp(self):
-        super().setUp()
-        self.slot = LessonSlot.objects.create(
-            type=self.lesson_type,
-            subject=self.subject,
-            teacher=self.teacher,
-            start_time=timezone.now(),
-            end_time=timezone.now() + timezone.timedelta(hours=1),
-            max_students=5,
-        )
 
     def test_valid_lesson(self):
         les = Lesson.objects.create(
@@ -123,14 +132,6 @@ class LessonModelTest(BaseModelTest):
 class ReviewModelTest(BaseModelTest):
     def setUp(self):
         super().setUp()
-        self.slot = LessonSlot.objects.create(
-            type=self.lesson_type,
-            subject=self.subject,
-            teacher=self.teacher,
-            start_time=timezone.now(),
-            end_time=timezone.now() + timezone.timedelta(hours=1),
-            max_students=5,
-        )
 
         self.les = Lesson.objects.create(
             slot=self.slot,

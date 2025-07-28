@@ -51,10 +51,10 @@ class User(AbstractUser, BaseModel):
         return self.role and self.role.code == role_code
 
     def is_student(self):
-        return self.has_role("STD")
+        return self.has_role("STD") and self.is_active
 
     def is_teacher(self):
-        return self.has_role("TCR")
+        return self.has_role("TCR") and self.is_active
 
 
 class LessonType(DefaultTypeClass):
@@ -116,6 +116,15 @@ class LessonRequest(BaseModel):
 
     def __str__(self):
         return f"{self.student.username} → {self.slot} [{self.status}]"
+
+    def clean(self):
+        accepted_requests = LessonRequest.objects.filter(
+            slot=self.slot,
+            status="accepted",
+        ).count()
+
+        if accepted_requests >= self.slot.max_students:
+            raise ValidationError("No available places for you")
 
 
 class Lesson(BaseModel):
