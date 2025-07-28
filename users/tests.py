@@ -10,7 +10,7 @@ from .models import *
 class BaseModelTest(TestCase):
     def setUp(self):
         self.teacher_role = Role.get_teacher()
-        self.student_role = Role.get_student()
+        self.student_role = Role.get_student() # можно вложить в пустую миграцию
 
         self.teacher = User.objects.create(username="Teacher1", password="12345")
         self.teacher.role = self.teacher_role

@@ -135,10 +135,9 @@ class Lesson(BaseModel):
     slot = models.OneToOneField(LessonSlot, on_delete=models.CASCADE)
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="given")
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="taken")
-    confirmed_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Lesson: {self.teacher.username} ↔ {self.student.username} | {self.slot.start_time.strftime('%Y-%   m-%d %H:%M')}"
+        return f"Lesson: {self.teacher.username} | {self.slot.start_time.strftime('%Y-%m-%d %H:%M')}"
 
 
 class Notification(BaseModel):
